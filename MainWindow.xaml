@@ -1,12 +1,163 @@
 ﻿<Window x:Class="ExoplanetHunter.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:ExoplanetHunter"
-        mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
+        Title="Exoplanet Hunter" Height="760" Width="1360"
+        Background="{StaticResource BgDeepBrush}"
+        WindowStartupLocation="CenterScreen">
 
+    <Grid>
+        <!-- ============ STARFIELD BACKDROP (lowest layer) ============ -->
+        <Canvas x:Name="StarfieldCanvas" ClipToBounds="True" IsHitTestVisible="False"/>
+
+        <!-- ============ MAIN CONTENT ============ -->
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- ============ HEADER ============ -->
+            <Border Grid.Row="0" Background="#CC131A2A"
+                    BorderBrush="{StaticResource GridLineBrush}" BorderThickness="0,0,0,1"
+                    Padding="24,16">
+                <Grid>
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse x:Name="PulseDot" Width="10" Height="10" Fill="{StaticResource SignalAmberBrush}"
+                                 Margin="0,0,12,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="E X O P L A N E T   H U N T E R" Style="{StaticResource ConsoleTitle}" VerticalAlignment="Center"/>
+                        <TextBlock Text="TRANSIT DETECTION CONSOLE" Style="{StaticResource SectionLabel}"
+                                   Margin="20,0,0,0" VerticalAlignment="Bottom" Padding="0,0,0,3"/>
+                    </StackPanel>
+                    <TextBlock Text="KEPLER-DERIVED · LIGHT CURVE CLASSIFIER" Style="{StaticResource SectionLabel}"
+                               HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                </Grid>
+            </Border>
+
+            <!-- ============ MAIN BODY ============ -->
+            <Grid Grid.Row="1" Margin="20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="280"/>
+                    <ColumnDefinition Width="20"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- LEFT: Control rail -->
+                <Grid Grid.Column="0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="12"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="12"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="16"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="8"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="CONTROLS" Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
+
+                    <Button Grid.Row="2" x:Name="LoadDatasetButton" Content="LOAD DATASET"
+                            Style="{StaticResource ConsoleButtonPrimary}"
+                            Click="LoadDatasetButton_Click"/>
+
+                    <Button Grid.Row="4" x:Name="TrainButton" Content="TRAIN MODEL"
+                            Style="{StaticResource ConsoleButton}"
+                            Click="TrainButton_Click" IsEnabled="False"/>
+
+                    <TextBlock Grid.Row="6" Text="STAR CATALOG" Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
+
+                    <ListBox Grid.Row="8" x:Name="RowListBox" Style="{StaticResource ConsoleListBox}"
+                             SelectionChanged="RowListBox_SelectionChanged"/>
+                </Grid>
+
+                <!-- RIGHT: Scope viewport + readout -->
+                <Grid Grid.Column="2">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="12"/>
+                        <RowDefinition Height="3*"/>
+                        <RowDefinition Height="16"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="16"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Orientation="Horizontal">
+                        <TextBlock Text="LIGHT CURVE — FLUX vs TIME" Style="{StaticResource SectionLabel}" VerticalAlignment="Center"/>
+                        <Button x:Name="PredictButton" Content="RUN PREDICTION" Style="{StaticResource ConsoleButton}"
+                                Margin="16,0,0,0" Padding="12,4" IsEnabled="False"
+                                Click="PredictButton_Click" HorizontalAlignment="Right"/>
+                    </StackPanel>
+
+                    <!-- The scope: dark panel + grid + curve + corner brackets -->
+                    <Border Grid.Row="2" x:Name="ScopeBorder" Background="{StaticResource BgPanelBrush}"
+                            BorderBrush="{StaticResource GridLineBrush}" BorderThickness="1">
+                        <Grid>
+                            <Canvas x:Name="GridCanvas" ClipToBounds="True"/>
+                            <Canvas x:Name="ChartCanvas" ClipToBounds="True"/>
+                            <Canvas x:Name="BracketCanvas" IsHitTestVisible="False"/>
+                            <TextBlock x:Name="EmptyStateText" Text="LOAD A DATASET AND SELECT A STAR TO VIEW ITS LIGHT CURVE"
+                                       Style="{StaticResource SectionLabel}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Feature readout -->
+                    <Border Grid.Row="4" Background="{StaticResource BgPanelBrush}"
+                            BorderBrush="{StaticResource GridLineBrush}" BorderThickness="1" Padding="20,14">
+                        <StackPanel Orientation="Horizontal">
+                            <StackPanel Margin="0,0,32,0">
+                                <TextBlock Text="DIP DEPTH" Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
+                                <TextBlock x:Name="FeatDipDepth" Text="—" Style="{StaticResource DataValue}"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,32,0">
+                                <TextBlock Text="DIP COUNT" Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
+                                <TextBlock x:Name="FeatDipCount" Text="—" Style="{StaticResource DataValue}"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,32,0">
+                                <TextBlock Text="SYMMETRY" Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
+                                <TextBlock x:Name="FeatSymmetry" Text="—" Style="{StaticResource DataValue}"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,32,0">
+                                <TextBlock Text="PERIODICITY" Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
+                                <TextBlock x:Name="FeatPeriodicity" Text="—" Style="{StaticResource DataValue}"/>
+                            </StackPanel>
+                            <StackPanel>
+                                <TextBlock Text="NOISE (σ)" Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
+                                <TextBlock x:Name="FeatStdDev" Text="—" Style="{StaticResource DataValue}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Telemetry strip -->
+                    <Border Grid.Row="6" Background="{StaticResource BgPanelBrush}"
+                            BorderBrush="{StaticResource GridLineBrush}" BorderThickness="1" Padding="20,14">
+                        <StackPanel Orientation="Horizontal">
+                            <StackPanel Margin="0,0,40,0">
+                                <TextBlock Text="STATUS" Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
+                                <TextBlock x:Name="StatusText" Text="Awaiting dataset" Style="{StaticResource DataValue}"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,40,0">
+                                <TextBlock Text="MODEL AUC" Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
+                                <TextBlock x:Name="AucText" Text="—" Style="{StaticResource DataValue}"/>
+                            </StackPanel>
+                            <StackPanel>
+                                <TextBlock Text="PREDICTION" Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
+                                <TextBlock x:Name="PredictionText" Text="—" Style="{StaticResource DataValueAccent}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Grid>
+
+            <!-- ============ FOOTER ============ -->
+            <Border Grid.Row="2" Background="#CC131A2A"
+                    BorderBrush="{StaticResource GridLineBrush}" BorderThickness="0,1,0,0"
+                    Padding="24,8">
+                <TextBlock Text="KEPLER LABELLED TIME SERIES — TRANSIT METHOD REPLICATION"
+                           Style="{StaticResource SectionLabel}"/>
+            </Border>
+        </Grid>
     </Grid>
 </Window>
