@@ -12,16 +12,25 @@ public partial class App : Application
         // Quick test: load a small slice of the dataset and confirm it worked
         var data = LightCurveDataLoader.LoadCsv("data/exoTrain.csv", maxRows: 50);
 
-        var raw = data[0].Flux;
-        var processed = LightCurvePreprocessor.Process(raw);
+        // Compare features between a known exoplanet and a known non-exoplanet
+        var exoplanetRow = data.First(r => r.IsExoplanet);
+        var nonExoplanetRow = data.First(r => !r.IsExoplanet);
+
+        var exoFeatures = LightCurveFeatures.Extract(
+            LightCurvePreprocessor.Process(exoplanetRow.Flux), true);
+
+        var nonExoFeatures = LightCurveFeatures.Extract(
+            LightCurvePreprocessor.Process(nonExoplanetRow.Flux), false);
 
         MessageBox.Show(
-            $"Raw flux length: {raw.Length}\n" +
-            $"Processed flux length: {processed.Length}\n" +
-            $"Raw first value: {raw[0]:F2}\n" +
-            $"Processed first value: {processed[0]:F4}\n" +
-            $"Processed min: {processed.Min():F4}\n" +
-            $"Processed max: {processed.Max():F4}"
+            $"EXOPLANET row features:\n" +
+            $"  Dip Depth: {exoFeatures.DipDepth:F4}\n" +
+            $"  Dip Count: {exoFeatures.DipCount}\n" +
+            $"  Symmetry: {exoFeatures.DipSymmetryScore:F4}\n\n" +
+            $"NON-EXOPLANET row features:\n" +
+            $"  Dip Depth: {nonExoFeatures.DipDepth:F4}\n" +
+            $"  Dip Count: {nonExoFeatures.DipCount}\n" +
+            $"  Symmetry: {nonExoFeatures.DipSymmetryScore:F4}"
         );
     }
 }
