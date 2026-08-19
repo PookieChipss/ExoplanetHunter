@@ -22,6 +22,12 @@
     <SolidColorBrush x:Key="ConfirmCyanBrush" Color="{StaticResource ConfirmCyanColor}"/>
     <SolidColorBrush x:Key="DangerRedBrush" Color="{StaticResource DangerRedColor}"/>
 
+    <!-- Soft radial glow used behind panels instead of a flat fill, for depth -->
+    <RadialGradientBrush x:Key="BgPanelGlowBrush" Center="0.5,0.25" RadiusX="1.0" RadiusY="0.9">
+        <GradientStop Color="{StaticResource BgPanelLightColor}" Offset="0.0"/>
+        <GradientStop Color="{StaticResource BgPanelColor}" Offset="1.0"/>
+    </RadialGradientBrush>
+
     <!-- ============ TYPOGRAPHY ============ -->
     <FontFamily x:Key="DisplayFont">Bahnschrift SemiBold</FontFamily>
     <FontFamily x:Key="BodyFont">Segoe UI</FontFamily>
@@ -128,7 +134,7 @@
     </Style>
 
     <Style x:Key="ConsoleListBox" TargetType="ListBox">
-        <Setter Property="Background" Value="{StaticResource BgPanelBrush}"/>
+        <Setter Property="Background" Value="{StaticResource BgPanelGlowBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="BorderBrush" Value="{StaticResource GridLineBrush}"/>
         <Setter Property="ItemContainerStyle" Value="{StaticResource ConsoleListBoxItem}"/>

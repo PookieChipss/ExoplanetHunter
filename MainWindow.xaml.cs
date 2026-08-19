@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 using Microsoft.Win32;
 
 namespace ExoplanetHunter;
@@ -14,11 +15,81 @@ public partial class MainWindow : Window
     private List<LightCurveData>? _dataset;
     private LightCurveClassifier? _classifier;
     private LightCurveData? _selectedRow;
+    private bool _starfieldInitialized;
+    private float[]? _currentFlux;
+    private int _starPulseIndex;
+    private readonly DispatcherTimer _starPulseTimer;
 
     public MainWindow()
     {
         InitializeComponent();
         SizeChanged += (_, _) => RedrawChartIfNeeded();
+        Loaded += (_, _) => InitializeStarfield();
+
+        _starPulseTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(20) };
+        _starPulseTimer.Tick += StarPulseTimer_Tick;
+    }
+
+    private void StarPulseTimer_Tick(object? sender, EventArgs e)
+    {
+        if (_currentFlux == null || _currentFlux.Length == 0) return;
+
+        float flux = _currentFlux[_starPulseIndex % _currentFlux.Length];
+        _starPulseIndex++;
+
+        double brightness = 0.45 + flux * 0.55;
+        StarViz.Opacity = brightness;
+        StarVizGlow.Opacity = 0.4 + flux * 0.6;
+
+        double scale = 0.85 + flux * 0.15;
+        StarViz.RenderTransform = new ScaleTransform(scale, scale, StarViz.Width / 2, StarViz.Height / 2);
+    }
+
+    // ============ STARFIELD BACKDROP ============
+
+    private void InitializeStarfield()
+    {
+        if (_starfieldInitialized) return;
+        if (ActualWidth <= 0 || ActualHeight <= 0) return;
+        _starfieldInitialized = true;
+
+        var rnd = new Random();
+        var starBrush = (Brush)FindResource("TextPrimaryBrush");
+        int starCount = rnd.Next(80, 151);
+
+        for (int i = 0; i < starCount; i++)
+        {
+            double size = rnd.NextDouble() * 1.6 + 0.8;
+            double x = rnd.NextDouble() * ActualWidth;
+            double y = rnd.NextDouble() * ActualHeight;
+            double baseOpacity = rnd.NextDouble() * 0.5 + 0.15;
+
+            var star = new Ellipse
+            {
+                Width = size,
+                Height = size,
+                Fill = starBrush,
+                Opacity = baseOpacity
+            };
+            Canvas.SetLeft(star, x);
+            Canvas.SetTop(star, y);
+            StarfieldCanvas.Children.Add(star);
+
+            // ~1 in 3 stars twinkle — desynced via random begin delay and duration
+            if (rnd.Next(3) == 0)
+            {
+                var twinkle = new System.Windows.Media.Animation.DoubleAnimation
+                {
+                    From = baseOpacity,
+                    To = Math.Max(0.05, baseOpacity - 0.35),
+                    Duration = TimeSpan.FromSeconds(rnd.NextDouble() * 2.5 + 1.5),
+                    AutoReverse = true,
+                    RepeatBehavior = System.Windows.Media.Animation.RepeatBehavior.Forever,
+                    BeginTime = TimeSpan.FromSeconds(rnd.NextDouble() * 4.0)
+                };
+                star.BeginAnimation(OpacityProperty, twinkle);
+            }
+        }
     }
 
     private void LoadDatasetButton_Click(object sender, RoutedEventArgs e)
@@ -53,6 +124,9 @@ public partial class MainWindow : Window
 
         PredictButton.IsEnabled = _classifier != null;
         PredictionText.Text = "—";
+
+        OrbitPlanetGroup.Visibility = Visibility.Collapsed;
+        OrbitRotate.BeginAnimation(RotateTransform.AngleProperty, null);
     }
 
     private void TrainButton_Click(object sender, RoutedEventArgs e)
@@ -104,6 +178,24 @@ public partial class MainWindow : Window
         PredictionText.Foreground = prediction.IsExoplanet
             ? (Brush)FindResource("ConfirmCyanBrush")
             : (Brush)FindResource("TextSecondaryBrush");
+
+        if (prediction.IsExoplanet)
+        {
+            OrbitPlanetGroup.Visibility = Visibility.Visible;
+            var orbit = new System.Windows.Media.Animation.DoubleAnimation
+            {
+                From = 0,
+                To = 360,
+                Duration = TimeSpan.FromSeconds(6),
+                RepeatBehavior = System.Windows.Media.Animation.RepeatBehavior.Forever
+            };
+            OrbitRotate.BeginAnimation(RotateTransform.AngleProperty, orbit);
+        }
+        else
+        {
+            OrbitPlanetGroup.Visibility = Visibility.Collapsed;
+            OrbitRotate.BeginAnimation(RotateTransform.AngleProperty, null);
+        }
     }
 
     // ============ CHART DRAWING ============
@@ -128,6 +220,11 @@ public partial class MainWindow : Window
 
         DrawGrid(width, height);
         DrawCurve(processed, width, height, row.IsExoplanet);
+
+        _currentFlux = processed;
+        _starPulseIndex = 0;
+        StarVizContainer.Visibility = Visibility.Visible;
+        _starPulseTimer.Start();
     }
 
     private void DrawGrid(double width, double height)

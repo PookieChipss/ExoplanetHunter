@@ -23,8 +23,12 @@
                     Padding="24,16">
                 <Grid>
                     <StackPanel Orientation="Horizontal">
-                        <Ellipse x:Name="PulseDot" Width="10" Height="10" Fill="{StaticResource SignalAmberBrush}"
-                                 Margin="0,0,12,0" VerticalAlignment="Center"/>
+                        <Grid Width="26" Height="26" Margin="0,0,12,0" VerticalAlignment="Center">
+                            <Ellipse Width="26" Height="26" Stroke="{StaticResource GridLineBrush}" StrokeThickness="1"
+                                     Opacity="0.8" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <Ellipse x:Name="PulseDot" Width="10" Height="10" Fill="{StaticResource SignalAmberBrush}"
+                                     HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Grid>
                         <TextBlock Text="E X O P L A N E T   H U N T E R" Style="{StaticResource ConsoleTitle}" VerticalAlignment="Center"/>
                         <TextBlock Text="TRANSIT DETECTION CONSOLE" Style="{StaticResource SectionLabel}"
                                    Margin="20,0,0,0" VerticalAlignment="Bottom" Padding="0,0,0,3"/>
@@ -92,7 +96,7 @@
                     </StackPanel>
 
                     <!-- The scope: dark panel + grid + curve + corner brackets -->
-                    <Border Grid.Row="2" x:Name="ScopeBorder" Background="{StaticResource BgPanelBrush}"
+                    <Border Grid.Row="2" x:Name="ScopeBorder" Background="{StaticResource BgPanelGlowBrush}"
                             BorderBrush="{StaticResource GridLineBrush}" BorderThickness="1">
                         <Grid>
                             <Canvas x:Name="GridCanvas" ClipToBounds="True"/>
@@ -100,11 +104,54 @@
                             <Canvas x:Name="BracketCanvas" IsHitTestVisible="False"/>
                             <TextBlock x:Name="EmptyStateText" Text="LOAD A DATASET AND SELECT A STAR TO VIEW ITS LIGHT CURVE"
                                        Style="{StaticResource SectionLabel}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+                            <!-- Live star visualization: dims/brightens with the selected curve's flux -->
+                            <Grid x:Name="StarVizContainer" Width="90" Height="90"
+                                  HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,16,20,0"
+                                  IsHitTestVisible="False" Visibility="Collapsed">
+                                <Ellipse x:Name="StarVizGlow" Width="90" Height="90">
+                                    <Ellipse.Fill>
+                                        <RadialGradientBrush>
+                                            <GradientStop Color="#FF9F5B" Offset="0.0"/>
+                                            <GradientStop Color="#00FF9F5B" Offset="1.0"/>
+                                        </RadialGradientBrush>
+                                    </Ellipse.Fill>
+                                    <Ellipse.Effect>
+                                        <BlurEffect Radius="14"/>
+                                    </Ellipse.Effect>
+                                </Ellipse>
+                                <Ellipse x:Name="StarViz" Width="30" Height="30">
+                                    <Ellipse.Fill>
+                                        <RadialGradientBrush>
+                                            <GradientStop Color="#FFF7EC" Offset="0.0"/>
+                                            <GradientStop Color="#FF9F5B" Offset="0.6"/>
+                                            <GradientStop Color="#00FF9F5B" Offset="1.0"/>
+                                        </RadialGradientBrush>
+                                    </Ellipse.Fill>
+                                </Ellipse>
+
+                                <!-- Orbiting planet indicator: appears + orbits the star on a positive prediction -->
+                                <Canvas Width="90" Height="90">
+                                    <Grid x:Name="OrbitPlanetGroup" Canvas.Left="37" Canvas.Top="0"
+                                          Width="16" Height="16" Visibility="Collapsed">
+                                        <Grid.RenderTransform>
+                                            <RotateTransform x:Name="OrbitRotate" Angle="0" CenterX="8" CenterY="45"/>
+                                        </Grid.RenderTransform>
+                                        <Ellipse Width="16" Height="16" Fill="{StaticResource ConfirmCyanBrush}" Opacity="0.4">
+                                            <Ellipse.Effect>
+                                                <BlurEffect Radius="6"/>
+                                            </Ellipse.Effect>
+                                        </Ellipse>
+                                        <Ellipse Width="6" Height="6" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                 Fill="{StaticResource ConfirmCyanBrush}"/>
+                                    </Grid>
+                                </Canvas>
+                            </Grid>
                         </Grid>
                     </Border>
 
                     <!-- Feature readout -->
-                    <Border Grid.Row="4" Background="{StaticResource BgPanelBrush}"
+                    <Border Grid.Row="4" Background="{StaticResource BgPanelGlowBrush}"
                             BorderBrush="{StaticResource GridLineBrush}" BorderThickness="1" Padding="20,14">
                         <StackPanel Orientation="Horizontal">
                             <StackPanel Margin="0,0,32,0">
@@ -131,7 +178,7 @@
                     </Border>
 
                     <!-- Telemetry strip -->
-                    <Border Grid.Row="6" Background="{StaticResource BgPanelBrush}"
+                    <Border Grid.Row="6" Background="{StaticResource BgPanelGlowBrush}"
                             BorderBrush="{StaticResource GridLineBrush}" BorderThickness="1" Padding="20,14">
                         <StackPanel Orientation="Horizontal">
                             <StackPanel Margin="0,0,40,0">
