@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 
 namespace ExoplanetHunter
 {
@@ -13,10 +14,10 @@ namespace ExoplanetHunter
 
             using (var reader = new StreamReader(filePath))
             {
-                string headerLine = reader.ReadLine(); // skip the header row (LABEL, FLUX.1, FLUX.2...)
+                string? headerLine = reader.ReadLine(); // skip the header row (LABEL, FLUX.1, FLUX.2...)
                 int id = 0;
 
-                string line;
+                string? line;
                 while ((line = reader.ReadLine()) != null)
                 {
                     if (maxRows.HasValue && id >= maxRows.Value) break;
@@ -41,6 +42,29 @@ namespace ExoplanetHunter
             }
 
             return results;
+        }
+
+        // Shuffles the dataset randomly — important because in this CSV,
+        // all exoplanet rows are grouped at the top, so taking the "first N"
+        // rows would badly skew our training data.
+        public static List<LightCurveData> Shuffle(List<LightCurveData> data, int seed = 42)
+        {
+            var random = new Random(seed);
+            return data.OrderBy(_ => random.Next()).ToList();
+        }
+
+        // Splits shuffled data into training and testing sets.
+        // testFraction=0.2 means 20% held out for testing, 80% for training.
+        public static (List<LightCurveData> train, List<LightCurveData> test) SplitTrainTest(
+            List<LightCurveData> data, double testFraction = 0.2, int seed = 42)
+        {
+            var shuffled = Shuffle(data, seed);
+            int testCount = (int)(shuffled.Count * testFraction);
+
+            return (
+                train: shuffled.Skip(testCount).ToList(),
+                test: shuffled.Take(testCount).ToList()
+            );
         }
     }
 }

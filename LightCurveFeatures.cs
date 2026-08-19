@@ -1,35 +1,31 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 
 namespace ExoplanetHunter
 {
-    // These 6 numbers are what the ML model will actually train on —
-    // not the raw 200-point curve, but a summary of its "shape."
     public class LightCurveFeatures
     {
         public float MeanFlux { get; set; }
         public float MinFlux { get; set; }
         public float StdDevFlux { get; set; }
-        public float DipDepth { get; set; }         // how far the deepest dip drops below average
-        public int DipCount { get; set; }            // how many separate dip events were found
-        public float DipSymmetryScore { get; set; }  // how symmetric the deepest dip is
-        public bool Label { get; set; }               // true = exoplanet, false = not (what we're trying to predict)
+        public float DipDepth { get; set; }
+        public float DipCount { get; set; }
+        public float DipSymmetryScore { get; set; }
+        public float PeriodicityScore { get; set; }
+        public bool Label { get; set; }
+        public float Weight { get; set; } = 1f;
 
         public static LightCurveFeatures Extract(float[] processedFlux, bool label)
         {
             float mean = processedFlux.Average();
             float min = processedFlux.Min();
 
-            // Standard deviation: measures how "spread out" the values are.
-            // A noisy, jittery curve has high std dev; a flat, stable one has low std dev.
             float stdDev = (float)Math.Sqrt(
                 processedFlux.Select(v => Math.Pow(v - mean, 2)).Average()
             );
 
-            // A "dip" = any point sitting more than 1.5 standard deviations below the mean.
-            // This threshold is a judgment call — too strict and we miss subtle dips,
-            // too loose and normal noise gets counted as a dip.
             float dipThreshold = mean - 1.5f * stdDev;
             var dipIndices = processedFlux
                 .Select((v, i) => (value: v, index: i))
@@ -40,6 +36,7 @@ namespace ExoplanetHunter
             float dipDepth = mean - min;
             int dipCount = CountDipGroups(dipIndices);
             float symmetryScore = CalculateSymmetry(processedFlux, min);
+            float periodicityScore = CalculatePeriodicity(dipIndices);
 
             return new LightCurveFeatures
             {
@@ -49,12 +46,11 @@ namespace ExoplanetHunter
                 DipDepth = dipDepth,
                 DipCount = dipCount,
                 DipSymmetryScore = symmetryScore,
+                PeriodicityScore = periodicityScore,
                 Label = label
             };
         }
 
-        // Groups consecutive dip indices together so one wide dip doesn't
-        // get miscounted as several separate dips.
         private static int CountDipGroups(List<int> dipIndices)
         {
             if (dipIndices.Count == 0) return 0;
@@ -67,10 +63,6 @@ namespace ExoplanetHunter
             return groups;
         }
 
-        // Compares the average flux just BEFORE the deepest point vs just AFTER it.
-        // A real transit dips down and comes back up in a roughly mirrored pattern,
-        // so a high score (close to 1) suggests a real transit; a low score suggests
-        // random noise or an asymmetric event (like a flare).
         private static float CalculateSymmetry(float[] flux, float minValue)
         {
             if (flux.Length <= 10) return 0f;
@@ -85,5 +77,31 @@ namespace ExoplanetHunter
 
             return 1f - Math.Abs(before - after);
         }
+
+        // Measures how REGULARLY SPACED the dips are. Real planetary transits
+        // repeat at a consistent interval (the orbital period); random noise
+        // dips don't. High score = very regular spacing = more planet-like.
+        private static float CalculatePeriodicity(List<int> dipIndices)
+        {
+            if(dipIndices.Count < 3) return 0f; // need at least 2 gaps to compare
+
+            var gaps = new List<int>();
+            for (int i = 1; i < dipIndices.Count; i++)
+            {
+                int gap = dipIndices[i] - dipIndices[i - 1];
+                if (gap > 1) gaps.Add(gap); // ignore adjacent points within the same dip group
+            }
+
+            if (gaps.Count < 2) return 0f;
+
+            float meanGap =  (float)gaps.Average();
+            float gapStdDev = (float)Math.Sqrt(gaps.Select(g =>Math.Pow( g - meanGap, 2)).Average());
+
+            // Low relative variation in gap size = high periodicity score.
+            // We invert it so higher score = more regular = more planet-like.
+            float coefficientOfVariation = meanGap > 0 ? gapStdDev / meanGap : 1f;
+            return 1f / (1f + coefficientOfVariation);
+        }
+        
     }
 }
